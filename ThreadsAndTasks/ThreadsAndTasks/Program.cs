@@ -232,6 +232,12 @@ namespace ThreadsAndTasks
             //    new Thread(MonitorDoWork).Start();
             //}
 
+            //using Monitor example 2
+            new Thread(ThreadWork).Start();
+            Monitor.Enter(_locker);
+            Console.WriteLine(3);
+            Monitor.Exit(_locker);
+
             //using Manual Reset Event
             //new Thread(Write).Start();
 
@@ -253,14 +259,31 @@ namespace ThreadsAndTasks
             //}
 
             //using Semaphore
-            for (int i = 0; i < 5; i++)
-            {
-                new Thread(WriteSemaphore).Start();
-            }
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    new Thread(WriteSemaphore).Start();
+            //}
 
             #endregion
 
             Console.ReadLine();
+        }
+
+        public static void ThreadWork()
+        {
+            try
+            {
+                Monitor.Enter(_locker);
+                Console.WriteLine(1);
+                throw new Exception("2");
+                Monitor.Exit(_locker);
+            }
+            catch(Exception exception)
+            {
+                Monitor.Enter(_locker);
+                Console.WriteLine(exception.Message);
+                Monitor.Exit(_locker);
+            }
         }
 
         public static void Write()
