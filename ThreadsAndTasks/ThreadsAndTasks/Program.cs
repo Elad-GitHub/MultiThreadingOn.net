@@ -17,6 +17,16 @@ namespace ThreadsAndTasks
     {
         private static event Action EventFinished = () => { };
 
+        private static object _locker = new object();
+
+        private static ManualResetEvent _mre = new ManualResetEvent(false);
+
+        private static AutoResetEvent _are = new AutoResetEvent(true);
+
+        private static Mutex _mutex = new Mutex();
+
+        private static Semaphore _semaphore = new Semaphore(2, 2);
+
         static void Main(string[] args)
         {
             #region Example for asynchronous code. The main thread does not wait for the inner thread.
@@ -197,18 +207,140 @@ namespace ThreadsAndTasks
 
             #region Working with WhenAll 
 
-            Task.Run(async () =>
+            //Task.Run(async () =>
+            //{
+            //    Log("Before WhenAll thread");
+
+            //    await WhenAllAsync();
+
+            //    Log("After WhenAll thread");
+            // }).Wait();
+
+            #endregion
+
+            #region Lock Mechanism and Thread synchronization
+
+            //using Lock object
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    new Thread(LockDoWork).Start();
+            //}
+
+            //using Monitor
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    new Thread(MonitorDoWork).Start();
+            //}
+
+            //using Manual Reset Event
+            //new Thread(Write).Start();
+
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    new Thread(Read).Start();
+            //}
+
+            //using Auto Reset Event
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    new Thread(WriteAutoReset).Start();
+            //}
+
+            //using Mutex
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    new Thread(WriteMutex).Start();
+            //}
+
+            //using Semaphore
+            for (int i = 0; i < 5; i++)
             {
-                Log("Before WhenAll thread");
-
-                await WhenAllAsync();
-
-                Log("After WhenAll thread");
-             }).Wait();
+                new Thread(WriteSemaphore).Start();
+            }
 
             #endregion
 
             Console.ReadLine();
+        }
+
+        public static void Write()
+        {
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Writing…");
+            //setting to false
+            _mre.Reset();
+            Thread.Sleep(5000);
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Writing completed…");
+            //setting to true
+            _mre.Set();
+        }
+
+        public static void WriteAutoReset()
+        {
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Waiting…");
+            _are.WaitOne();
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Writing…");
+            Thread.Sleep(5000);
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Writing completed…");
+            _are.Set();
+        }
+
+        public static void WriteMutex()
+        {
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Waiting…");
+            _mutex.WaitOne();
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Writing…");
+            Thread.Sleep(5000);
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Writing completed…");
+            _mutex.ReleaseMutex();
+        }
+
+        public static void WriteSemaphore()
+        {
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Waiting…");
+            _semaphore.WaitOne();
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Writing…");
+            Thread.Sleep(5000);
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Writing completed…");
+            _semaphore.Release();
+        }
+
+        public static void Read()
+        {
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Waiting…");
+            _mre.WaitOne();
+            Thread.Sleep(2000);
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} Reading completed…");
+            _mre.Set();
+        }
+
+        public static void LockDoWork()
+        {
+            lock (_locker)
+            {
+                Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} starting…");
+                Thread.Sleep(2000);
+                Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} completed…");
+            }
+        }
+
+        public static void MonitorDoWork()
+        {
+            try
+            {
+                Monitor.Enter(_locker);
+                Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} starting…");
+                Thread.Sleep(2000);
+                throw new Exception();
+                Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} completed…");
+            }
+            catch (Exception e)
+            {
+                //log..
+            }
+            finally
+            {
+                Monitor.Exit(_locker);
+            }
         }
 
         private static async Task WhenAllAsync()
